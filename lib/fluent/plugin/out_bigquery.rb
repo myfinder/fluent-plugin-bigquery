@@ -278,9 +278,16 @@ module Fluent
           rescue => e
             log.warn "Parse error: google api error response body", :body => res.body
           end
+        elsif res.status == 413
+          log.error "tabledata.insertAll API", :project_id => @project, :dataset => @dataset, :table => table_id, :code => res.status, :message => message
+          split_pos = rows.length / 2
+          log.error "retry rows: #{rows.length}"
+          insert(table_id_format, rows.slice(0..split_pos-1))
+          insert(table_id_format, rows.slice(split_pos..rows.length))
+        else
+          log.error "tabledata.insertAll API", :project_id => @project, :dataset => @dataset, :table => table_id, :code => res.status, :message => message
+          raise "failed to insert into bigquery" # TODO: error class
         end
-        log.error "tabledata.insertAll API", :project_id => @project, :dataset => @dataset, :table => table_id, :code => res.status, :message => message
-        raise "failed to insert into bigquery" # TODO: error class
       end
     end
 
